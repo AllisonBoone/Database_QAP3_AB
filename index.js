@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
+const { request } = require('http');
 
 const app = express();
 const PORT = 3000;
@@ -41,7 +42,7 @@ const USERS = [
 
 // GET /login - Render login form
 app.get('/login', (request, response) => {
-  response.render('login');
+  response.render('login', { error: null });
 });
 
 // POST /login - Allows a user to login
@@ -66,11 +67,33 @@ app.post('/login', async (request, response) => {
 
 // GET /signup - Render signup form
 app.get('/signup', (request, response) => {
-  response.render('signup');
+  response.render('signup', { error: null });
 });
 
 // POST /signup - Allows a user to signup
-app.post('/signup', (request, response) => {});
+app.post('/signup', async (request, response) => {
+  const { username, email, password } = request.body;
+
+  if (!username || !email || !password) {
+    return response.render('signup', { error: 'All fields are required.' });
+  }
+
+  if (USERS.some((u) => u.email === email)) {
+    return response.render('signup', { error: 'Email is already registered.' });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+  USERS.push({
+    id: USERS.length + 1,
+    username,
+    email,
+    password: hashedPassword,
+    role: 'user',
+  });
+
+  response.redirect('/login');
+});
 
 // GET / - Render index page or redirect to landing if logged in
 app.get('/', (request, response) => {
@@ -81,7 +104,24 @@ app.get('/', (request, response) => {
 });
 
 // GET /landing - Shows a welcome page for users, shows the names of all users if an admin
-app.get('/landing', (request, response) => {});
+app.get('/landing', (request, response) => {
+  if (!request.session.user) {
+    return response.redirect('/login');
+  }
+
+  const user = request.session.user;
+
+  if (user.role === 'admin') {
+    return response.render('landing', { user, users: USERS });
+  }
+
+  response.render('landing', { user, users: null });
+});
+
+app.get('/logout', (request, response) => {
+  request.session.destroy();
+  response.redirect('/');
+});
 
 // Start server
 app.listen(PORT, () => {
