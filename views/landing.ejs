@@ -1,0 +1,17 @@
+<%- include('partials/header', { title: "Login" }) %>
+
+<h1>Welcome, <%= user.username %>!</h1>
+
+<% if (users) { %>
+<h2>All Registered Users</h2>
+<ul>
+  <% users.forEach(u => { %>
+  <li><%= u.username %> (<%= u.email %>) - Role: <%= u.role %></li>
+  <% }); %>
+</ul>
+<% } else { %>
+<p>This is your personalized dashboard.</p>
+<% } %>
+
+<a href="/logout">Logout</a>
+<%- include('partials/footer') %>
