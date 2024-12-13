@@ -49,6 +49,19 @@ app.post('/login', async (request, response) => {
   const { email, password } = request.body;
 
   const user = USERS.find((u) => u.email === email);
+
+  if (!user) {
+    return response.render('login', { error: 'Invalid email or password.' });
+  }
+
+  const isMatch = await bcrypt.compare(password, user.password);
+
+  if (!isMatch) {
+    return response.render('login', { error: 'Invalid email or password.' });
+  }
+
+  request.session.user = user;
+  response.redirect('/landing');
 });
 
 // GET /signup - Render signup form
